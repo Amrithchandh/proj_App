@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/storage_service.dart';
 import 'models/user_profile.dart';
+import 'providers/app_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RoutineTrackerApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AppProvider(),
+      child: const RoutineTrackerApp(),
+    ),
+  );
 }
 
 class RoutineTrackerApp extends StatelessWidget {
