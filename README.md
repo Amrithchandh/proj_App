@@ -1,17 +1,18 @@
-# ictak
+# Routine Tracker App
 
-A new Flutter project.
+A simple and intuitive Flutter application designed to help students organize daily routines, track task completion, and build long-term streaks.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- **Routine Management**: Add, view, and delete daily routines easily.
+- **Arc Progress Indicator**: Visual semi-circular progress gauge showing completion percentage.
+- **Weekly Calendar Grid**: Centered 7-day calendar row for quick tracking.
+- **Local SQLite Database**: Fully offline data persistence using sqflite.
+- **Interactive Customizations**: Profile avatar updates and settings management.
 
-A few resources to get you started if this is your first Flutter project:
+## Setup & Running
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Clone this repository.
+2. Ensure you have the Flutter SDK installed.
+3. Run `flutter pub get` to fetch dependencies.
+4. Execute `flutter run` to launch the application.
