@@ -1,26 +1,50 @@
-// This is a basic Flutter widget test for the Routine Tracker application.
-// It verifies that the main components of our dashboard load successfully.
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ictak/main.dart';
+import 'package:ictak/models/routine.dart';
+import 'package:ictak/models/user_profile.dart';
 
 void main() {
-  testWidgets('Routine Tracker dashboard smoke test', (WidgetTester tester) async {
-    // 1. Setup mock initial values for SharedPreferences to prevent testing blocks
-    SharedPreferences.setMockInitialValues({});
+  group('Model Tests', () {
+    test('Routine toJson and fromJson serialization', () {
+      final routine = Routine(
+        id: 1,
+        title: 'Exercise',
+        time: '8 AM',
+        category: 'Workout',
+        frequency: 'Daily',
+        streak: 3,
+        isCompleted: true,
+        completedTime: '8:05 AM',
+      );
 
-    // 2. Build our app and trigger a frame.
-    await tester.pumpWidget(const RoutineTrackerApp());
+      final json = routine.toJson();
+      expect(json['id'], 1);
+      expect(json['title'], 'Exercise');
+      expect(json['streak'], 3);
+      expect(json['isCompleted'], true);
 
-    // 3. Pump twice to let the async FutureBuilder load and rebuild the LoginScreen
-    await tester.pump();
-    await tester.pump();
+      final fromJson = Routine.fromJson(json);
+      expect(fromJson.id, 1);
+      expect(fromJson.title, 'Exercise');
+      expect(fromJson.streak, 3);
+      expect(fromJson.isCompleted, true);
+    });
 
-    // Verify that our main login header "Today's Track" is present.
-    expect(find.text("Today's Track"), findsOneWidget);
+    test('UserProfile toJson and fromJson serialization', () {
+      final profile = UserProfile(
+        username: 'Amrith',
+        email: 'amrith@example.com',
+        gender: 'Male',
+        password: 'password123',
+        avatarKey: 'student_boy',
+      );
 
-    // Verify that the login submit button "Get Started" exists.
-    expect(find.text('Get Started'), findsOneWidget);
+      final json = profile.toJson();
+      expect(json['username'], 'Amrith');
+      expect(json['email'], 'amrith@example.com');
+
+      final fromJson = UserProfile.fromJson(json);
+      expect(fromJson.username, 'Amrith');
+      expect(fromJson.email, 'amrith@example.com');
+    });
   });
 }

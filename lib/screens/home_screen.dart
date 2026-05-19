@@ -7,10 +7,7 @@ import '../widgets/routine_card.dart';
 import 'add_routine_screen.dart';
 import 'settings_screen.dart'; // Import settings screen
 
-// This is the core dashboard of the Routine Tracker app.
-// It manages the list of habits, calculates daily progress dynamically,
-// generates a live 7-day calendar row centered around today, and communicates 
-// with the local StorageService to persist data between sessions using setState.
+// Main dashboard for the Routine Tracker app.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -208,10 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xFF1E1E24),
-        border: Border.all(color: yellowAccent.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: yellowAccent.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: yellowAccent.withOpacity(0.15),
+            color: yellowAccent.withValues(alpha: 0.15),
             blurRadius: 6,
             spreadRadius: 1,
           ),
@@ -330,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 'completed',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -359,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               _getDayNameAbbr(day.weekday),
                               style: TextStyle(
-                                color: isToday ? Colors.white : Colors.white.withOpacity(0.3),
+                                color: isToday ? Colors.white : Colors.white.withValues(alpha: 0.3),
                                 fontSize: 11,
                                 fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                               ),
@@ -404,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Icon(
                                     Icons.calendar_month_outlined,
                                     size: 64,
-                                    color: Colors.white.withOpacity(0.1),
+                                    color: Colors.white.withValues(alpha: 0.1),
                                   ),
                                   const SizedBox(height: 16),
                                   const Text(
@@ -419,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Text(
                                     'Tap "+ Add new Routine" to populate habits.',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.35),
+                                      color: Colors.white.withValues(alpha: 0.35),
                                       fontSize: 13,
                                     ),
                                   ),

@@ -3,9 +3,7 @@ import '../models/user_profile.dart';
 import '../services/storage_service.dart';
 import 'login_screen.dart';
 
-// This is the settings management screen.
-// It manages the UserProfile, allowing the editing of the profile photo (avatar/URL), 
-// username, mail ID, gender selection, and the password of their mail with visibility toggles.
+// Settings screen for managing user profile and preferences.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -208,10 +206,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFFFE600).withOpacity(0.08) : Colors.white.withOpacity(0.02),
+                            color: isSelected ? const Color(0xFFFFE600).withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.02),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isSelected ? const Color(0xFFFFE600) : Colors.white.withOpacity(0.06),
+                              color: isSelected ? const Color(0xFFFFE600) : Colors.white.withValues(alpha: 0.06),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -244,17 +242,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: "https://example.com/photo.jpg",
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 13),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 13),
                       filled: true,
                       fillColor: const Color(0xFF0F0F12),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -299,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_selectedAvatarKey.startsWith('http')) {
       return CircleAvatar(
         radius: size,
-        backgroundColor: Colors.white.withOpacity(0.05),
+        backgroundColor: Colors.white.withValues(alpha: 0.05),
         backgroundImage: NetworkImage(_selectedAvatarKey),
         // Error builder handles invalid/broken URLs gracefully so we "never show error"
         child: ClipOval(
@@ -325,11 +323,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.4), color.withOpacity(0.15)],
+          colors: [color.withValues(alpha: 0.4), color.withValues(alpha: 0.15)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: const Color(0xFFFFE600).withOpacity(0.2), width: 1.5),
+        border: Border.all(color: const Color(0xFFFFE600).withValues(alpha: 0.2), width: 1.5),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -396,7 +394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           "Tap to edit profile photo",
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.35),
+                            color: Colors.white.withValues(alpha: 0.35),
                             fontSize: 12,
                           ),
                         ),
@@ -461,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
-                        value: _selectedGender,
+                        initialValue: _selectedGender,
                         style: const TextStyle(color: Colors.white),
                         dropdownColor: cardColor,
                         decoration: InputDecoration(

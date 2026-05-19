@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/routine.dart';
 
-// This screen allows students to add new routines to their daily schedule.
-// It has form validation, category and frequency selectors, and an elegant
-// double time-picker flow (Start Time and End Time) to format duration strings.
+// Screen for adding a new routine.
 class AddRoutineScreen extends StatefulWidget {
   const AddRoutineScreen({super.key});
 
@@ -67,6 +65,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
     );
 
     if (endTime == null) return;
+    if (!mounted) return;
 
     // 3. Format the range and update the state
     final String startFormatted = startTime.format(context);
@@ -155,7 +154,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 
                 // Category Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   dropdownColor: cardBg,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
@@ -191,7 +190,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 
                 // Frequency Dropdown
                 DropdownButtonFormField<String>(
-                  value: _selectedFrequency,
+                  initialValue: _selectedFrequency,
                   dropdownColor: cardBg,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   decoration: InputDecoration(
