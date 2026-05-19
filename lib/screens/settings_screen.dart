@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user_profile.dart';
 import '../services/storage_service.dart';
 import 'login_screen.dart';
@@ -147,10 +149,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Open Avatar Picker modal bottom sheet to select standard icons or input Web URL
   void _openAvatarPicker() {
-    final urlController = TextEditingController(
-      text: _selectedAvatarKey.startsWith('http') ? _selectedAvatarKey : '',
-    );
-
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
@@ -175,9 +173,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  
+                  // Gallery picker button
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                      if (image != null) {
+                        final bytes = await image.readAsBytes();
+                        final String base64String = 'data:image/png;base64,' + base64Encode(bytes);
+                        setModalState(() {
+                          _selectedAvatarKey = base64String;
+                        });
+                        setState(() {
+                          _selectedAvatarKey = base64String;
+                        });
+                        // Automatically close bottom sheet after successful pick
+                        if (mounted) Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E1E24),
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFFFFE600), width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    icon: const Icon(Icons.photo_library, color: Color(0xFFFFE600)),
+                    label: const Text('Choose from Photo Gallery', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 24),
 
                   // Avatar Grid Selection
-                  const Text("Built-in Avatars", style: TextStyle(color: Colors.white38, fontSize: 13)),
+                  const Text("Or Select a Built-in Avatar", style: TextStyle(color: Colors.white38, fontSize: 13)),
                   const SizedBox(height: 8),
                   GridView.builder(
                     shrinkWrap: true,
@@ -198,7 +226,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onTap: () {
                           setModalState(() {
                             _selectedAvatarKey = key;
-                            urlController.clear();
                           });
                           setState(() {
                             _selectedAvatarKey = key;
@@ -234,44 +261,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Custom Image URL Input
-                  const Text("Or Add Custom Image URL", style: TextStyle(color: Colors.white38, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: urlController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: "https://example.com/photo.jpg",
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 13),
-                      filled: true,
-                      fillColor: const Color(0xFF0F0F12),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFFFE600)),
-                      ),
-                    ),
-                    onChanged: (val) {
-                      if (val.trim().isNotEmpty) {
-                        setModalState(() {
-                          _selectedAvatarKey = val.trim();
-                        });
-                        setState(() {
-                          _selectedAvatarKey = val.trim();
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
                   // Close bottom sheet button
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
@@ -292,8 +281,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Renders the Avatar circle based on key or URL
+  // Renders the Avatar circle based on key or base64 image
   Widget _buildAvatarWidget(double size) {
+    if (_selectedAvatarKey.startsWith('data:image/')) {
+      final base64Data = _selectedAvatarKey.split(',').last;
+      final bytes = base64Decode(base64Data);
+      return CircleAvatar(
+        radius: size,
+        backgroundImage: MemoryImage(bytes),
+      );
+    }
+
     if (_selectedAvatarKey.startsWith('http')) {
       return CircleAvatar(
         radius: size,

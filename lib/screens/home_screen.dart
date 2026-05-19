@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../models/user_profile.dart'; // Import profile model
@@ -194,6 +195,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+      );
+    }
+
+    if (avatarKey.startsWith('data:image/')) {
+      final base64Data = avatarKey.split(',').last;
+      final bytes = base64Decode(base64Data);
+      return CircleAvatar(
+        radius: size,
+        backgroundImage: MemoryImage(bytes),
       );
     }
 
