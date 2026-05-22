@@ -16,24 +16,24 @@ class RoutineCard extends StatelessWidget {
   String _getCategoryEmoji(String category) {
     switch (category.toLowerCase()) {
       case 'workout':
-        return '🏋️';
+        return 'good job';
       case 'drink water':
-        return '🥛';
+        return 'drink water ';
       case 'attend class':
-        return '🎓';
+        return 'good job dear ';
       case 'design assignment':
       case 'assignments':
-        return '📝';
+        return 'you did it ';
       case 'watch anime':
-        return '📺';
+        return 'done!';
       case 'study':
-        return '📚';
+        return 'very good ';
       case 'reading':
-        return '📖';
+        return 'good for knoledge ';
       case 'sleep':
-        return '🛌';
+        return 'zzzzzz';
       default:
-        return '📋';
+        return 'helll ';
     }
   }
 
@@ -52,7 +52,9 @@ class RoutineCard extends StatelessWidget {
           color: const Color(0xFF1E1E24),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted ? const Color(0xFFFFE600) : Colors.white.withValues(alpha: 0.06),
+            color: isCompleted
+                ? const Color(0xFFFFE600)
+                : Colors.white.withValues(alpha: 0.06),
             width: 1.5,
           ),
           boxShadow: [
@@ -78,15 +80,14 @@ class RoutineCard extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          decoration: isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
                           decorationColor: const Color(0xFFFFE600),
                         ),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 18),
-                      ),
+                      Text(emoji, style: const TextStyle(fontSize: 18)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -99,7 +100,10 @@ class RoutineCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(20),
@@ -107,10 +111,7 @@ class RoutineCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          '🔥',
-                          style: TextStyle(fontSize: 12),
-                        ),
+                        const Text('🔥', style: TextStyle(fontSize: 12)),
                         const SizedBox(width: 4),
                         Text(
                           '${routine.streak}-day streak',
