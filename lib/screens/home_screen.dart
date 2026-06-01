@@ -7,7 +7,7 @@ import '../services/storage_service.dart';
 import '../widgets/arc_progress_painter.dart';
 import '../widgets/routine_card.dart';
 import 'add_routine_screen.dart';
-import 'settings_screen.dart'; 
+import 'settings_screen.dart';
 import 'motivation_screen.dart'; // Import motivation screen
 
 class HomeScreen extends StatefulWidget {
@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Routine> _routines = [];
   bool _isLoadingRoutines = true;
   int _selectedIndex = 0; // BottomNavigationBar index
+  DateTime _selectedDay = DateTime.now();
 
   final Map<String, String> _avatarEmojis = {
     'student_boy': '👦',
@@ -63,25 +64,27 @@ class _HomeScreenState extends State<HomeScreen> {
       if (routine.isCompleted) {
         routine.isCompleted = false;
         routine.completedTime = null;
-        if (routine.streak > 0) routine.streak -= 1; 
+        if (routine.streak > 0) routine.streak -= 1;
       } else {
         routine.isCompleted = true;
         routine.completedTime = TimeOfDay.now().format(context);
-        routine.streak += 1; 
+        routine.streak += 1;
       }
     });
 
-    _saveData(); 
+    _saveData();
 
     final routineName = _routines[index].title;
-    final statusText = _routines[index].isCompleted ? 'Completed' : 'Reset to incomplete';
+    final statusText = _routines[index].isCompleted
+        ? 'Completed'
+        : 'Reset to incomplete';
     final streakText = _routines[index].isCompleted ? '🔥 Streak +1!' : '';
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$routineName marked as $statusText! $streakText'),
-        backgroundColor: const Color(0xFFFFE600), 
+        backgroundColor: const Color(0xFFFFE600),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -94,28 +97,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _deleteRoutine(int index) {
+  Future<void> _deleteRoutine(int index) async {
     final deletedName = _routines[index].title;
-    setState(() {
-      _routines.removeAt(index);
-    });
-    _saveData();
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Routine "$deletedName" was deleted.'),
-        backgroundColor: Colors.redAccent,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
+    
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E24),
+          title: const Text(
+            'Confirm Delete',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Do you want to delete "$deletedName"?',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFFFFE600))),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (!mounted) return;
+
+    if (confirm == true) {
+      setState(() {
+        _routines.removeAt(index);
+      });
+      _saveData();
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Routine "$deletedName" was deleted.'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _navigateAndAddRoutine() async {
     final Routine? newRoutine = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddRoutineScreen()),
+      MaterialPageRoute(
+        builder: (context) => AddRoutineScreen(defaultWeekday: _selectedDay.weekday),
+      ),
     );
 
     if (!mounted) return;
@@ -160,7 +201,11 @@ class _HomeScreenState extends State<HomeScreen> {
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white10, width: 1),
         ),
-        child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+        child: const Icon(
+          Icons.settings_outlined,
+          color: Colors.white,
+          size: 20,
+        ),
       );
     }
 
@@ -188,10 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (avatarKey.startsWith('data:image/')) {
       final base64Data = avatarKey.split(',').last;
       final bytes = base64Decode(base64Data);
-      return CircleAvatar(
-        radius: size,
-        backgroundImage: MemoryImage(bytes),
-      );
+      return CircleAvatar(radius: size, backgroundImage: MemoryImage(bytes));
     }
 
     final String emoji = _avatarEmojis[avatarKey] ?? '👦';
@@ -202,7 +244,10 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xFF1E1E24),
-        border: Border.all(color: yellowAccent.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+          color: yellowAccent.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: yellowAccent.withValues(alpha: 0.15),
@@ -218,31 +263,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<DateTime> _getCenteredWeek() {
     final today = DateTime.now();
-    return List.generate(7, (index) => today.subtract(Duration(days: 3 - index)));
+    return List.generate(
+      7,
+      (index) => today.subtract(Duration(days: 3 - index)),
+    );
   }
 
   String _getDayNameAbbr(int weekday) {
     switch (weekday) {
-      case 1: return 'Mon';
-      case 2: return 'Tue';
-      case 3: return 'Wed';
-      case 4: return 'Thu';
-      case 5: return 'Fri';
-      case 6: return 'Sat';
-      case 7: return 'Sun';
-      default: return '';
+      case 1:
+        return 'Mon';
+      case 2:
+        return 'Tue';
+      case 3:
+        return 'Wed';
+      case 4:
+        return 'Thu';
+      case 5:
+        return 'Fri';
+      case 6:
+        return 'Sat';
+      case 7:
+        return 'Sun';
+      default:
+        return '';
     }
   }
 
   Widget _buildDashboard() {
     const Color darkBg = Color(0xFF0F0F12);
     const Color yellowAccent = Color(0xFFFFE600);
-    
+
     // Accessing state through Provider
     final appProvider = Provider.of<AppProvider>(context);
 
-    int totalCount = _routines.length;
-    int completedCount = _routines.where((r) => r.isCompleted).length;
+    final filteredRoutines = _routines.where((r) => r.scheduledDays.contains(_selectedDay.weekday)).toList();
+    int totalCount = filteredRoutines.length;
+    int completedCount = filteredRoutines.where((r) => r.isCompleted).length;
     double progress = totalCount > 0 ? (completedCount / totalCount) : 0.0;
     int progressPercent = (progress * 100).toInt();
 
@@ -255,12 +312,17 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20.0,
+                    vertical: 16.0,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        appProvider.profile != null ? "Hi, ${appProvider.profile!.username}!" : "Today's Track",
+                        appProvider.profile != null
+                            ? "Hi, ${appProvider.profile!.username}!"
+                            : "Today's Track",
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -294,16 +356,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.arrow_upward, color: yellowAccent, size: 18),
+                            const Icon(
+                              Icons.arrow_upward,
+                              color: yellowAccent,
+                              size: 18,
+                            ),
                             const SizedBox(height: 2),
                             Text(
                               '$progressPercent %',
-                              style: const TextStyle(color: yellowAccent, fontSize: 26, fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                color: yellowAccent,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                             const SizedBox(height: 1),
                             Text(
                               'completed',
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -312,38 +386,98 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: weekDays.map((day) {
-                      final isToday = day.year == today.year && day.month == today.month && day.day == today.day;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _getDayNameAbbr(day.weekday),
-                            style: TextStyle(
-                              color: isToday ? Colors.white : Colors.white.withValues(alpha: 0.3),
-                              fontSize: 11,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      final isToday =
+                          day.year == today.year &&
+                          day.month == today.month &&
+                          day.day == today.day;
+                      final isSelected =
+                          day.year == _selectedDay.year &&
+                          day.month == _selectedDay.month &&
+                          day.day == _selectedDay.day;
+                      final hasRoutines = _routines.any((r) => r.scheduledDays.contains(day.weekday));
+
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedDay = day;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? yellowAccent.withValues(alpha: 0.15) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? yellowAccent : Colors.transparent,
+                              width: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                            decoration: BoxDecoration(
-                              border: isToday ? const Border(bottom: BorderSide(color: yellowAccent, width: 2)) : null,
-                            ),
-                            child: Text(
-                              '${day.day}',
-                              style: TextStyle(
-                                color: isToday ? yellowAccent : Colors.white,
-                                fontSize: 14,
-                                fontWeight: isToday ? FontWeight.w900 : FontWeight.bold,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getDayNameAbbr(day.weekday),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? yellowAccent
+                                      : isToday
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.3),
+                                  fontSize: 11,
+                                  fontWeight: isSelected || isToday
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: isToday
+                                      ? const Border(
+                                          bottom: BorderSide(
+                                            color: yellowAccent,
+                                            width: 2,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                child: Text(
+                                  '${day.day}',
+                                  style: TextStyle(
+                                    color: isSelected || isToday ? yellowAccent : Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: isSelected || isToday
+                                        ? FontWeight.w900
+                                        : FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: hasRoutines
+                                      ? (isSelected ? yellowAccent : yellowAccent.withValues(alpha: 0.6))
+                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       );
                     }).toList(),
                   ),
@@ -357,25 +491,74 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.calendar_month_outlined, size: 64, color: Colors.white.withValues(alpha: 0.1)),
+                                Icon(
+                                  Icons.calendar_month_outlined,
+                                  size: 64,
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                ),
                                 const SizedBox(height: 16),
-                                const Text('Your tracker is empty!', style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                                const Text(
+                                  'Your tracker is empty!',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 const SizedBox(height: 6),
-                                Text('Tap "+ Add new Routine" to populate habits.', style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13)),
+                                Text(
+                                  'Tap "+ Add new Routine" to populate habits.',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           )
-                        : ListView.builder(
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: _routines.length,
-                            itemBuilder: (context, index) {
-                              return RoutineCard(
-                                routine: _routines[index],
-                                onTap: () => _toggleRoutineCompletion(index),
-                                onDelete: () => _deleteRoutine(index),
-                              );
-                            },
-                          ),
+                        : filteredRoutines.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.event_busy_outlined,
+                                      size: 64,
+                                      color: Colors.white.withValues(alpha: 0.1),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'No routines today!',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Select another day or add a routine for this day.',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.35),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: filteredRoutines.length,
+                                itemBuilder: (context, index) {
+                                  final routine = filteredRoutines[index];
+                                  final originalIndex = _routines.indexOf(routine);
+                                  return RoutineCard(
+                                    routine: routine,
+                                    onTap: () => _toggleRoutineCompletion(originalIndex),
+                                    onDelete: () => _deleteRoutine(originalIndex),
+                                  );
+                                },
+                              ),
                   ),
                 ),
                 Container(
@@ -392,7 +575,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: const [
                           Icon(Icons.add, color: yellowAccent, size: 20),
                           SizedBox(width: 4),
-                          Text('Add new Routine', style: TextStyle(color: yellowAccent, fontSize: 15, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Add new Routine',
+                            style: TextStyle(
+                              color: yellowAccent,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -413,10 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: darkBg,
       body: IndexedStack(
         index: _selectedIndex,
-        children: [
-          _buildDashboard(),
-          const MotivationScreen(),
-        ],
+        children: [_buildDashboard(), const MotivationScreen()],
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: cardColor,

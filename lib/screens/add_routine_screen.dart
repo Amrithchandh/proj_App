@@ -3,7 +3,8 @@ import '../models/routine.dart';
 
 // Screen for adding a new routine.
 class AddRoutineScreen extends StatefulWidget {
-  const AddRoutineScreen({super.key});
+  final int? defaultWeekday;
+  const AddRoutineScreen({super.key, this.defaultWeekday});
 
   @override
   State<AddRoutineScreen> createState() => _AddRoutineScreenState();
@@ -17,6 +18,18 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
   bool _isAllDay = true; // State of the "All day" toggle
   String _selectedCategory = 'Workout'; // Default category
   String _selectedFrequency = 'Daily'; // Default frequency
+  List<int> _selectedDays = [];
+  final List<String> _weekLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  @override
+  void initState() {
+    super.initState();
+    final initialDay = widget.defaultWeekday ?? DateTime.now().weekday;
+    _selectedDays = [initialDay];
+    if (_selectedFrequency == 'Daily') {
+      _selectedDays = [1, 2, 3, 4, 5, 6, 7];
+    }
+  }
 
   // Predefined student-focused categories matching screenshot and requirements
   final List<String> _categories = [
@@ -212,9 +225,73 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                     if (value != null) {
                       setState(() {
                         _selectedFrequency = value;
+                        if (value == 'Daily') {
+                          _selectedDays = [1, 2, 3, 4, 5, 6, 7];
+                        } else {
+                          final parts = value.split(' ');
+                          final numDays = int.tryParse(parts[0]) ?? 1;
+                          if (_selectedDays.length != numDays) {
+                            final baseDay = widget.defaultWeekday ?? DateTime.now().weekday;
+                            _selectedDays = List.generate(numDays, (i) => ((baseDay - 1 + i) % 7) + 1);
+                          }
+                        }
                       });
                     }
                   },
+                ),
+                const SizedBox(height: 20),
+
+                const Text(
+                  'Active Days',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(7, (index) {
+                    final dayNum = index + 1;
+                    final isSelected = _selectedDays.contains(dayNum);
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            if (_selectedDays.length > 1) {
+                              _selectedDays.remove(dayNum);
+                            }
+                          } else {
+                            _selectedDays.add(dayNum);
+                          }
+                          _selectedDays.sort();
+                          if (_selectedDays.length == 7) {
+                            _selectedFrequency = 'Daily';
+                          } else {
+                            _selectedFrequency = '${_selectedDays.length} day a week';
+                          }
+                        });
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected ? yellowAccent : cardBg,
+                          border: Border.all(
+                            color: isSelected ? yellowAccent : Colors.white24,
+                            width: 1,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _weekLabels[index],
+                          style: TextStyle(
+                            color: isSelected ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ),
                 const SizedBox(height: 20),
 
@@ -321,6 +398,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                               streak: 0, // Starts at 0
                               isCompleted: false, // Starts as incomplete
                               completedTime: null,
+                              scheduledDays: _selectedDays,
                             );
                             
                             // Pop this screen and return the new object
