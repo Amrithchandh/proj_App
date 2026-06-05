@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const NoSQLDatabase = require('./database');
 
 const app = express();
@@ -77,6 +78,12 @@ seedDatabase();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve DB Viewer UI at http://localhost:5000/
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'db-viewer.html'));
+});
+app.use(express.static(__dirname));
 
 // Log incoming requests
 app.use((req, res, next) => {

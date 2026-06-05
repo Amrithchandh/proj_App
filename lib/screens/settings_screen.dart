@@ -283,32 +283,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Renders the Avatar circle based on key or base64 image
   Widget _buildAvatarWidget(double size) {
+    Widget? imageChild;
+
     if (_selectedAvatarKey.startsWith('data:image/')) {
       final base64Data = _selectedAvatarKey.split(',').last;
       final bytes = base64Decode(base64Data);
-      return CircleAvatar(
-        radius: size,
-        backgroundImage: MemoryImage(bytes),
+      imageChild = ClipOval(
+        child: Image.memory(
+          bytes,
+          width: size * 2,
+          height: size * 2,
+          fit: BoxFit.cover,
+        ),
+      );
+    } else if (_selectedAvatarKey.startsWith('http')) {
+      imageChild = ClipOval(
+        child: Image.network(
+          _selectedAvatarKey,
+          width: size * 2,
+          height: size * 2,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(Icons.broken_image_outlined, color: Colors.white24, size: 28),
+          ),
+        ),
       );
     }
 
-    if (_selectedAvatarKey.startsWith('http')) {
-      return CircleAvatar(
-        radius: size,
-        backgroundColor: Colors.white.withValues(alpha: 0.05),
-        backgroundImage: NetworkImage(_selectedAvatarKey),
-        // Error builder handles invalid/broken URLs gracefully so we "never show error"
-        child: ClipOval(
-          child: Image.network(
-            _selectedAvatarKey,
-            width: size * 2,
-            height: size * 2,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => const Center(
-              child: Icon(Icons.broken_image_outlined, color: Colors.white24, size: 28),
-            ),
+    if (imageChild != null) {
+      return Container(
+        width: size * 2,
+        height: size * 2,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFF1E1E24),
+          border: Border.all(
+            color: const Color(0xFFFFE600).withValues(alpha: 0.3),
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFE600).withValues(alpha: 0.15),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ],
         ),
+        alignment: Alignment.center,
+        child: imageChild,
       );
     }
 

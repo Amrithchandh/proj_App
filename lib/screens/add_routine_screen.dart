@@ -4,7 +4,8 @@ import '../models/routine.dart';
 // Screen for adding a new routine.
 class AddRoutineScreen extends StatefulWidget {
   final int? defaultWeekday;
-  const AddRoutineScreen({super.key, this.defaultWeekday});
+  final DateTime? defaultDate;
+  const AddRoutineScreen({super.key, this.defaultWeekday, this.defaultDate});
 
   @override
   State<AddRoutineScreen> createState() => _AddRoutineScreenState();
@@ -46,6 +47,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
 
   // Frequency options matching screenshot
   final List<String> _frequencies = [
+    'Once',
     'Daily',
     '1 day a week',
     '2 day a week',
@@ -227,6 +229,8 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                         _selectedFrequency = value;
                         if (value == 'Daily') {
                           _selectedDays = [1, 2, 3, 4, 5, 6, 7];
+                        } else if (value == 'Once') {
+                          _selectedDays = [widget.defaultWeekday ?? DateTime.now().weekday];
                         } else {
                           final parts = value.split(' ');
                           final numDays = int.tryParse(parts[0]) ?? 1;
@@ -398,7 +402,8 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                               streak: 0, // Starts at 0
                               isCompleted: false, // Starts as incomplete
                               completedTime: null,
-                              scheduledDays: _selectedDays,
+                              scheduledDays: _selectedFrequency == 'Once' ? [] : _selectedDays,
+                              specificDate: _selectedFrequency == 'Once' ? (widget.defaultDate?.toIso8601String() ?? DateTime.now().toIso8601String()) : null,
                             );
                             
                             // Pop this screen and return the new object

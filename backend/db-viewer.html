@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Routine Tracker — Database Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --card: #1a1a24;
+      --border: rgba(255,255,255,0.07);
+      --accent: #FFE600;
+      --accent-dim: rgba(255,230,0,0.12);
+      --accent-glow: rgba(255,230,0,0.25);
+      --green: #00E676;
+      --green-dim: rgba(0,230,118,0.12);
+      --red: #FF4D4D;
+      --red-dim: rgba(255,77,77,0.12);
+      --blue: #4D9EFF;
+      --blue-dim: rgba(77,158,255,0.12);
+      --purple: #B47EFF;
+      --purple-dim: rgba(180,126,255,0.12);
+      --text: #F0F0F5;
+      --text-dim: rgba(240,240,245,0.45);
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,230,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,230,0,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .layout {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 32px 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: var(--accent-dim);
+      border: 1.5px solid var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+    .logo h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo span { color: var(--accent); }
+    .logo p { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-weight: 400; }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+      transition: all 0.3s;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--text-dim);
+      animation: none;
+    }
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.offline { background: var(--red); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    .btn-refresh {
+      padding: 9px 18px;
+      background: var(--accent);
+      color: #000;
+      border: none; border-radius: 10px;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-refresh:hover { transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+    .btn-refresh:active { transform: translateY(0); }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px;
+      display: flex; align-items: center; gap: 16px;
+      transition: border-color 0.3s, transform 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
+    .stat-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .stat-card.accent .stat-icon { background: var(--accent-dim); }
+    .stat-card.green .stat-icon { background: var(--green-dim); }
+    .stat-card.blue .stat-icon { background: var(--blue-dim); }
+    .stat-card.purple .stat-icon { background: var(--purple-dim); }
+    .stat-value { font-size: 28px; font-weight: 900; line-height: 1; }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.green .stat-value { color: var(--green); }
+    .stat-card.blue .stat-value { color: var(--blue); }
+    .stat-card.purple .stat-value { color: var(--purple); }
+    .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; font-weight: 500; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 6px;
+      width: fit-content;
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      padding: 9px 20px;
+      border: none; border-radius: 10px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #000;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .tab-btn:not(.active):hover { color: var(--text); background: var(--card); }
+    .tab-count {
+      background: rgba(255,255,255,0.15);
+      border-radius: 100px;
+      padding: 2px 8px;
+      font-size: 11px; font-weight: 700;
+    }
+    .tab-btn.active .tab-count { background: rgba(0,0,0,0.2); }
+
+    /* ── Section ── */
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title h2 { font-size: 17px; font-weight: 700; }
+    .db-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 4px 10px; border-radius: 100px;
+      text-transform: uppercase;
+    }
+    .nosql-badge { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(77,158,255,0.3); }
+    .sqlite-badge { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(180,126,255,0.3); }
+
+    /* ── JSON Code Block ── */
+    .json-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .json-block-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .json-block-title { font-size: 12px; font-weight: 600; color: var(--text-dim); font-family: var(--mono); }
+    .copy-btn {
+      padding: 5px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-dim);
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    pre {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.8;
+      overflow-x: auto;
+      color: var(--text);
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    pre::-webkit-scrollbar { width: 6px; height: 6px; }
+    pre::-webkit-scrollbar-track { background: transparent; }
+    pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+    /* JSON Syntax Highlighting */
+    .json-key { color: #7EC8E3; }
+    .json-str { color: #A8E6A3; }
+    .json-num { color: #FFD700; }
+    .json-bool-true { color: var(--green); }
+    .json-bool-false { color: var(--red); }
+    .json-null { color: var(--text-dim); }
+
+    /* ── Cards Grid ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .routine-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .routine-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .routine-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.14); }
+    .routine-card:hover::before { opacity: 1; }
+    .routine-card.completed { border-color: rgba(0,230,118,0.2); }
+    .routine-card.completed::before { background: linear-gradient(90deg, transparent, var(--green), transparent); opacity: 1; }
+
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+    .card-id {
+      font-family: var(--mono);
+      font-size: 10px; color: var(--text-dim);
+      background: var(--surface); padding: 3px 8px; border-radius: 6px;
+    }
+    .card-status {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+      padding: 4px 10px; border-radius: 100px;
+    }
+    .card-status.done { background: var(--green-dim); color: var(--green); }
+    .card-status.pending { background: rgba(255,255,255,0.06); color: var(--text-dim); }
+
+    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+    .card-category { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+
+    .card-meta { display: flex; flex-direction: column; gap: 7px; }
+    .meta-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-dim);
+    }
+    .meta-row strong { color: var(--text); font-weight: 600; }
+    .meta-icon { font-size: 14px; }
+
+    .streak-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(255,140,0,0.12);
+      color: #FFA040;
+      border: 1px solid rgba(255,140,0,0.25);
+      border-radius: 100px;
+      padding: 4px 10px;
+      font-size: 12px; font-weight: 700;
+      margin-top: 12px;
+    }
+
+    /* ── Profile Card ── */
+    .profile-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .profile-wrapper { grid-template-columns: 1fr; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    .profile-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+      gap: 16px;
+    }
+    .avatar-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--accent-dim);
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 0 32px var(--accent-glow);
+    }
+    .profile-name { font-size: 22px; font-weight: 800; }
+    .profile-email { font-size: 13px; color: var(--text-dim); margin-top: -10px; }
+    .profile-fields { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+    .profile-field {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+    }
+    .field-key { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+    .field-val { font-size: 13px; font-weight: 600; font-family: var(--mono); }
+
+    /* ── Raw JSON section ── */
+    .raw-section { margin-top: 28px; }
+    .raw-title {
+      font-size: 13px; color: var(--text-dim); font-weight: 600;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .raw-title::before, .raw-title::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── SQLite info panel ── */
+    .sqlite-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .sqlite-icon { font-size: 48px; }
+    .sqlite-panel h3 { font-size: 17px; font-weight: 700; }
+    .sqlite-panel p { font-size: 13px; color: var(--text-dim); line-height: 1.7; max-width: 480px; }
+    .schema-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-align: left;
+      width: 100%;
+      line-height: 1.8;
+    }
+    .sql-keyword { color: var(--blue); font-weight: 600; }
+    .sql-type { color: var(--purple); }
+    .sql-comment { color: var(--text-dim); }
+    .sql-table { color: var(--accent); }
+
+    /* ── Loading / Error ── */
+    .loading-spinner {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px;
+      gap: 14px;
+      color: var(--text-dim); font-size: 14px;
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: var(--red-dim);
+      border: 1px solid rgba(255,77,77,0.25);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 13px; color: var(--red);
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    /* ── Endpoint list ── */
+    .endpoint-list {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 16px;
+    }
+    .endpoint-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px;
+      font-family: var(--mono); font-size: 12px;
+    }
+    .method {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+      padding: 3px 8px; border-radius: 6px; flex-shrink: 0;
+    }
+    .method.get { background: var(--green-dim); color: var(--green); }
+    .method.post { background: var(--blue-dim); color: var(--blue); }
+    .method.delete { background: var(--red-dim); color: var(--red); }
+    .endpoint-path { color: var(--text-dim); flex: 1; }
+    .endpoint-desc { font-size: 11px; color: var(--text-dim); font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🗄️</div>
+      <div>
+        <h1>Routine Tracker <span>DB</span> Viewer</h1>
+        <p>Live database inspector — NoSQL JSON + SQLite</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" id="serverStatus">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Checking…</span>
+      </div>
+      <button class="btn-refresh" onclick="loadAll()">
+        🔄 Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- Stats Row -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card accent">
+      <div class="stat-icon">📋</div>
+      <div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Routines</div>
+      </div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-icon">✅</div>
+      <div>
+        <div class="stat-value" id="stat-done">—</div>
+        <div class="stat-label">Completed Today</div>
+      </div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-icon">🔥</div>
+      <div>
+        <div class="stat-value" id="stat-streak">—</div>
+        <div class="stat-label">Avg Streak</div>
+      </div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-icon">👤</div>
+      <div>
+        <div class="stat-value" id="stat-user">—</div>
+        <div class="stat-label">Logged-in User</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-nosql" onclick="switchTab('nosql')">
+      🗄️ NoSQL JSON DB
+      <span class="tab-count" id="count-nosql">…</span>
+    </button>
+    <button class="tab-btn" id="tab-sqlite" onclick="switchTab('sqlite')">
+      🏛️ SQLite Schema
+    </button>
+    <button class="tab-btn" id="tab-api" onclick="switchTab('api')">
+      🔌 API Endpoints
+    </button>
+  </div>
+
+  <!-- NoSQL Section -->
+  <div class="section active" id="section-nosql">
+
+    <!-- Routines Collection -->
+    <div class="section-header">
+      <div class="section-title">
+        <h2>📋 routines</h2>
+        <span class="db-badge nosql-badge">NoSQL · JSON</span>
+      </div>
+    </div>
+
+    <div id="routinesCards" class="cards-grid">
+      <div class="loading-spinner"><div class="spinner"></div> Loading routines…</div>
+    </div>
+
+    <div class="raw-section">
+      <div class="raw-title">Raw JSON — backend/data/routines.json</div>
+      <div class="json-block">
+        <div class="json-block-header">
+          <span class="json-block-title">routines.json</span>
+          <button class="copy-btn" onclick="copyJSON('routinesRaw')">Copy</button>
+        </div>
+        <pre id="routinesRaw"><div class="loading-spinner"><div class="spinner"></div></div></pre>
+      </div>
+    </div>
+
+    <!-- Profile Collection -->
+    <div class="section-header" style="margin-top:32px">
+      <div class="section-title">
+        <h2>👤 profile</h2>
+        <span class="db-badge nosql-badge">NoSQL · JSON</span>
+      </div>
+    </div>
+
+    <div class="profile-wrapper">
+      <div id="profileCard" class="profile-card">
+        <div class="loading-spinner"><div class="spinner"></div> Loading profile…</div>
+      </div>
+
+      <div class="raw-section" style="margin-top:0">
+        <div class="json-block" style="height:100%">
+          <div class="json-block-header">
+            <span class="json-block-title">profile.json</span>
+            <button class="copy-btn" onclick="copyJSON('profileRaw')">Copy</button>
+          </div>
+          <pre id="profileRaw"><div class="loading-spinner"><div class="spinner"></div></div></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SQLite Section -->
+  <div class="section" id="section-sqlite">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>🏛️ SQLite Database</h2>
+        <span class="db-badge sqlite-badge">SQLite · sqflite</span>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;" class="sqlite-grid">
+
+      <div class="sqlite-panel">
+        <div class="sqlite-icon">👤</div>
+        <h3>user_profile table</h3>
+        <p>Stores a single user record for offline access. Accessed via the <strong>sqflite</strong> Flutter plugin. Located at the app's documents directory as <code style="font-family:var(--mono);font-size:12px;background:var(--surface);padding:2px 6px;border-radius:4px">routine_tracker.db</code>.</p>
+        <div class="schema-block">
+<span class="sql-keyword">CREATE TABLE</span> <span class="sql-table">user_profile</span> (<br>
+&nbsp;&nbsp;id          <span class="sql-type">INTEGER</span> <span class="sql-keyword">PRIMARY KEY</span>,<br>
+&nbsp;&nbsp;username    <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;email       <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;gender      <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;password    <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;avatarKey   <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span><br>
+);
+        </div>
+      </div>
+
+      <div class="sqlite-panel">
+        <div class="sqlite-icon">📋</div>
+        <h3>routines table</h3>
+        <p>Stores all routine items for <strong>offline-first</strong> operation. Acts as a local cache synced from the Node.js NoSQL backend when online. Data persists between app sessions.</p>
+        <div class="schema-block">
+<span class="sql-keyword">CREATE TABLE</span> <span class="sql-table">routines</span> (<br>
+&nbsp;&nbsp;id            <span class="sql-type">INTEGER</span> <span class="sql-keyword">PRIMARY KEY AUTOINCREMENT</span>,<br>
+&nbsp;&nbsp;title         <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;time          <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;category      <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;frequency     <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>,<br>
+&nbsp;&nbsp;streak        <span class="sql-type">INTEGER</span> <span class="sql-keyword">NOT NULL DEFAULT</span> 0,<br>
+&nbsp;&nbsp;isCompleted   <span class="sql-type">INTEGER</span> <span class="sql-keyword">NOT NULL DEFAULT</span> 0,<br>
+&nbsp;&nbsp;completedTime <span class="sql-type">TEXT</span> <span class="sql-comment">-- nullable</span><br>
+);
+        </div>
+      </div>
+    </div>
+
+    <div class="sqlite-panel" style="margin-top: 20px; flex-direction:row; gap: 24px; text-align:left; align-items:flex-start">
+      <div style="font-size:40px; flex-shrink:0">🔄</div>
+      <div>
+        <h3 style="margin-bottom:8px">Sync Strategy: Offline-First</h3>
+        <p>The app uses a <strong>dual-database sync strategy</strong>:</p>
+        <ol style="margin-top:10px; padding-left:18px; font-size:13px; color:var(--text-dim); line-height:2">
+          <li>On every <strong>save</strong> — data is written to SQLite <em>first</em> (instant, offline)</li>
+          <li>Then a health check pings <code style="font-family:var(--mono);font-size:11px">http://localhost:5000/api/health</code> (1s timeout)</li>
+          <li>If online — syncs to NoSQL JSON backend</li>
+          <li>On every <strong>load</strong> — backend NoSQL is preferred; SQLite is the fallback</li>
+        </ol>
+      </div>
+    </div>
+
+    <style>
+      @media (max-width: 768px) { .sqlite-grid { grid-template-columns: 1fr !important; } }
+    </style>
+  </div>
+
+  <!-- API Endpoints Section -->
+  <div class="section" id="section-api">
+    <div class="section-header">
+      <div class="section-title">
+        <h2>🔌 REST API Endpoints</h2>
+        <span class="db-badge nosql-badge">Express.js · Port 5000</span>
+      </div>
+    </div>
+
+    <div class="json-block">
+      <div class="json-block-header">
+        <span class="json-block-title">Base URL: http://localhost:5000/api</span>
+        <span id="healthResult" style="font-size:12px; color:var(--text-dim)">—</span>
+      </div>
+      <div style="padding: 20px;">
+
+        <div style="font-size:12px; font-weight:600; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px">Health</div>
+        <div class="endpoint-list">
+          <div class="endpoint-row">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/health</span>
+            <span class="endpoint-desc">Server health check</span>
+            <button class="copy-btn" onclick="testEndpoint('/health', 'GET')">Test</button>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:600; color:var(--text-dim); margin:20px 0 10px; text-transform:uppercase; letter-spacing:0.5px">Routines Collection</div>
+        <div class="endpoint-list">
+          <div class="endpoint-row">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/routines</span>
+            <span class="endpoint-desc">Fetch all routines</span>
+            <button class="copy-btn" onclick="testEndpoint('/routines', 'GET')">Test</button>
+          </div>
+          <div class="endpoint-row">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/routines</span>
+            <span class="endpoint-desc">Bulk save (overwrite collection)</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/routines/add</span>
+            <span class="endpoint-desc">Add a single routine</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/routines/:id</span>
+            <span class="endpoint-desc">Delete routine by ID</span>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:600; color:var(--text-dim); margin:20px 0 10px; text-transform:uppercase; letter-spacing:0.5px">Profile Collection</div>
+        <div class="endpoint-list">
+          <div class="endpoint-row">
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/profile</span>
+            <span class="endpoint-desc">Get user profile</span>
+            <button class="copy-btn" onclick="testEndpoint('/profile', 'GET')">Test</button>
+          </div>
+          <div class="endpoint-row">
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/profile</span>
+            <span class="endpoint-desc">Create / update profile</span>
+          </div>
+          <div class="endpoint-row">
+            <span class="method delete">DELETE</span>
+            <span class="endpoint-path">/profile</span>
+            <span class="endpoint-desc">Clear all data (reset)</span>
+          </div>
+        </div>
+
+        <div id="testResult" style="margin-top:20px; display:none">
+          <div class="raw-title">Response</div>
+          <div class="json-block">
+            <div class="json-block-header">
+              <span class="json-block-title" id="testEndpointLabel"></span>
+              <span id="testStatus" style="font-size:12px; font-weight:600"></span>
+            </div>
+            <pre id="testOutput" style="max-height:260px"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const BASE = 'http://localhost:5000/api';
+  const AVATARS = {
+    student_boy:'👦', student_girl:'👧', workout:'🏋️', study:'📚', gamer:'🎮', anime:'📺'
+  };
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('section-' + name).classList.add('active');
+  }
+
+  function syntaxHighlight(json) {
+    return JSON.stringify(json, null, 2)
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(?=\s*:))/g, '<span class="json-key">$1</span>')
+      .replace(/(:\s*)("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")/g, '$1<span class="json-str">$2</span>')
+      .replace(/(:\s*)(\d+(\.\d+)?)/g, '$1<span class="json-num">$2</span>')
+      .replace(/(:\s*)(true)/g, '$1<span class="json-bool-true">$2</span>')
+      .replace(/(:\s*)(false)/g, '$1<span class="json-bool-false">$2</span>')
+      .replace(/(:\s*)(null)/g, '$1<span class="json-null">$2</span>');
+  }
+
+  function copyJSON(preId) {
+    const pre = document.getElementById(preId);
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      const btn = pre.previousElementSibling?.querySelector('.copy-btn');
+      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = 'Copy', 2000); }
+    });
+  }
+
+  async function checkHealth() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    try {
+      const r = await fetch(BASE + '/health', { signal: AbortSignal.timeout(2000) });
+      if (r.ok) {
+        dot.className = 'status-dot online';
+        txt.textContent = 'Server Online';
+        return true;
+      }
+    } catch(_) {}
+    dot.className = 'status-dot offline';
+    txt.textContent = 'Server Offline';
+    return false;
+  }
+
+  async function loadRoutines() {
+    const grid = document.getElementById('routinesCards');
+    const raw = document.getElementById('routinesRaw');
+    try {
+      const r = await fetch(BASE + '/routines');
+      const data = await r.json();
+      document.getElementById('count-nosql').textContent = data.length;
+
+      // Stats
+      const done = data.filter(x => x.isCompleted).length;
+      const avgStreak = data.length ? Math.round(data.reduce((s, x) => s + (x.streak || 0), 0) / data.length) : 0;
+      document.getElementById('stat-total').textContent = data.length;
+      document.getElementById('stat-done').textContent = done;
+      document.getElementById('stat-streak').textContent = avgStreak + '🔥';
+
+      // Cards
+      if (!data.length) {
+        grid.innerHTML = '<div class="error-box">⚠️ No routines found in the database.</div>';
+      } else {
+        grid.innerHTML = data.map(r => `
+          <div class="routine-card ${r.isCompleted ? 'completed' : ''}">
+            <div class="card-top">
+              <span class="card-id">${r.id !== undefined ? '#' + r.id : 'no-id'}</span>
+              <span class="card-status ${r.isCompleted ? 'done' : 'pending'}">${r.isCompleted ? '✅ Done' : '⏳ Pending'}</span>
+            </div>
+            <div class="card-title">${r.title}</div>
+            <div class="card-category">📂 ${r.category}</div>
+            <div class="card-meta">
+              <div class="meta-row"><span class="meta-icon">🕐</span> <span>${r.time}</span></div>
+              <div class="meta-row"><span class="meta-icon">🔁</span> <span>${r.frequency}</span></div>
+              ${r.completedTime ? `<div class="meta-row"><span class="meta-icon">✅</span> <strong>Completed at ${r.completedTime}</strong></div>` : ''}
+            </div>
+            <div class="streak-badge">🔥 ${r.streak} day streak</div>
+          </div>
+        `).join('');
+      }
+
+      raw.innerHTML = syntaxHighlight(data);
+    } catch(e) {
+      grid.innerHTML = `<div class="error-box">❌ Cannot fetch routines — is the backend running?<br><small>${e.message}</small></div>`;
+      raw.textContent = '// Error: ' + e.message;
+      document.getElementById('stat-total').textContent = '—';
+      document.getElementById('stat-done').textContent = '—';
+      document.getElementById('stat-streak').textContent = '—';
+    }
+  }
+
+  async function loadProfile() {
+    const card = document.getElementById('profileCard');
+    const raw = document.getElementById('profileRaw');
+    try {
+      const r = await fetch(BASE + '/profile');
+      if (r.status === 404) {
+        card.innerHTML = '<div class="error-box">⚠️ No profile found in the database.</div>';
+        raw.textContent = '// 404: Profile not found';
+        document.getElementById('stat-user').textContent = '—';
+        return;
+      }
+      const p = await r.json();
+      document.getElementById('stat-user').textContent = p.username || '?';
+      const emoji = AVATARS[p.avatarKey] || '👤';
+      card.innerHTML = `
+        <div class="avatar-circle">${emoji}</div>
+        <div class="profile-name">${p.username || '—'}</div>
+        <div class="profile-email">${p.email || '—'}</div>
+        <div class="profile-fields">
+          ${Object.entries(p).filter(([k]) => !['username','email','avatarKey'].includes(k)).map(([k,v]) => `
+            <div class="profile-field">
+              <span class="field-key">${k}</span>
+              <span class="field-val">${k === 'password' ? '••••••••' : v}</span>
+            </div>
+          `).join('')}
+          <div class="profile-field">
+            <span class="field-key">avatarKey</span>
+            <span class="field-val">${p.avatarKey} ${emoji}</span>
+          </div>
+        </div>
+      `;
+      raw.innerHTML = syntaxHighlight(p);
+    } catch(e) {
+      card.innerHTML = `<div class="error-box">❌ Cannot fetch profile — is the backend running?<br><small>${e.message}</small></div>`;
+      raw.textContent = '// Error: ' + e.message;
+      document.getElementById('stat-user').textContent = '—';
+    }
+  }
+
+  async function testEndpoint(path, method) {
+    const box = document.getElementById('testResult');
+    const out = document.getElementById('testOutput');
+    const lbl = document.getElementById('testEndpointLabel');
+    const status = document.getElementById('testStatus');
+    box.style.display = 'block';
+    lbl.textContent = `${method} ${BASE}${path}`;
+    out.textContent = 'Fetching…';
+    status.textContent = '';
+    try {
+      const r = await fetch(BASE + path, { method });
+      const data = await r.json();
+      status.textContent = `${r.status} ${r.statusText}`;
+      status.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+      out.innerHTML = syntaxHighlight(data);
+    } catch(e) {
+      status.textContent = 'Error';
+      status.style.color = 'var(--red)';
+      out.textContent = e.message;
+    }
+  }
+
+  async function loadAll() {
+    const online = await checkHealth();
+    if (online) {
+      await Promise.all([loadRoutines(), loadProfile()]);
+    } else {
+      document.getElementById('routinesCards').innerHTML = '<div class="error-box">❌ Backend server is offline. Start it with: <code style="font-family:var(--mono)">cd backend && npm start</code></div>';
+      document.getElementById('profileCard').innerHTML = '<div class="error-box">❌ Backend offline</div>';
+      document.getElementById('routinesRaw').textContent = '// Backend offline — start with: npm start';
+      document.getElementById('profileRaw').textContent = '// Backend offline';
+      ['stat-total','stat-done','stat-streak','stat-user'].forEach(id => document.getElementById(id).textContent = '—');
+    }
+  }
+
+  // Auto-refresh every 10 seconds
+  loadAll();
+  setInterval(loadAll, 10000);
+</script>
+</body>
+</html>

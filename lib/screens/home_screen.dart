@@ -155,7 +155,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final Routine? newRoutine = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddRoutineScreen(defaultWeekday: _selectedDay.weekday),
+        builder: (context) => AddRoutineScreen(
+          defaultWeekday: _selectedDay.weekday,
+          defaultDate: _selectedDay,
+        ),
       ),
     );
 
@@ -210,30 +213,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final avatarKey = provider.profile!.avatarKey;
+    Widget? imageChild;
 
     if (avatarKey.startsWith('http')) {
-      return CircleAvatar(
-        radius: size,
-        backgroundColor: Colors.white10,
-        backgroundImage: NetworkImage(avatarKey),
-        child: ClipOval(
-          child: Image.network(
-            avatarKey,
-            width: size * 2,
-            height: size * 2,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => const Center(
-              child: Icon(Icons.person, color: Colors.white30, size: 16),
-            ),
+      imageChild = ClipOval(
+        child: Image.network(
+          avatarKey,
+          width: size * 2,
+          height: size * 2,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => const Center(
+            child: Icon(Icons.person, color: Colors.white30, size: 16),
           ),
+        ),
+      );
+    } else if (avatarKey.startsWith('data:image/')) {
+      final base64Data = avatarKey.split(',').last;
+      final bytes = base64Decode(base64Data);
+      imageChild = ClipOval(
+        child: Image.memory(
+          bytes,
+          width: size * 2,
+          height: size * 2,
+          fit: BoxFit.cover,
         ),
       );
     }
 
-    if (avatarKey.startsWith('data:image/')) {
-      final base64Data = avatarKey.split(',').last;
-      final bytes = base64Decode(base64Data);
-      return CircleAvatar(radius: size, backgroundImage: MemoryImage(bytes));
+    if (imageChild != null) {
+      return Container(
+        width: size * 2,
+        height: size * 2,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFF1E1E24),
+          border: Border.all(
+            color: yellowAccent.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: yellowAccent.withValues(alpha: 0.15),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: imageChild,
+      );
     }
 
     final String emoji = _avatarEmojis[avatarKey] ?? '👦';
@@ -297,7 +325,15 @@ class _HomeScreenState extends State<HomeScreen> {
     // Accessing state through Provider
     final appProvider = Provider.of<AppProvider>(context);
 
-    final filteredRoutines = _routines.where((r) => r.scheduledDays.contains(_selectedDay.weekday)).toList();
+    final filteredRoutines = _routines.where((r) {
+      if (r.frequency == 'Once' && r.specificDate != null) {
+        final rDate = DateTime.parse(r.specificDate!);
+        return rDate.year == _selectedDay.year &&
+               rDate.month == _selectedDay.month &&
+               rDate.day == _selectedDay.day;
+      }
+      return r.scheduledDays.contains(_selectedDay.weekday);
+    }).toList();
     int totalCount = filteredRoutines.length;
     int completedCount = filteredRoutines.where((r) => r.isCompleted).length;
     double progress = totalCount > 0 ? (completedCount / totalCount) : 0.0;
@@ -401,7 +437,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           day.year == _selectedDay.year &&
                           day.month == _selectedDay.month &&
                           day.day == _selectedDay.day;
-                      final hasRoutines = _routines.any((r) => r.scheduledDays.contains(day.weekday));
+                      final hasRoutines = _routines.any((r) {
+                        if (r.frequency == 'Once' && r.specificDate != null) {
+                          final rDate = DateTime.parse(r.specificDate!);
+                          return rDate.year == day.year &&
+                                 rDate.month == day.month &&
+                                 rDate.day == day.day;
+                        }
+                        return r.scheduledDays.contains(day.weekday);
+                      });
 
                       return GestureDetector(
                         onTap: () {

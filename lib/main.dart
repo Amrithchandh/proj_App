@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/storage_service.dart';
-import 'models/user_profile.dart';
 import 'providers/app_provider.dart';
 
 void main() {
@@ -65,23 +62,7 @@ class RoutineTrackerApp extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         ),
       ),
-      home: FutureBuilder<UserProfile?>(
-        future: StorageService().loadProfile(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              backgroundColor: Color(0xFF0F0F12),
-              body: Center(
-                child: CircularProgressIndicator(color: Color(0xFFFFE600)),
-              ),
-            );
-          }
-          if (snapshot.hasData && snapshot.data != null) {
-            return const HomeScreen();
-          }
-          return const LoginScreen();
-        },
-      ),
+      home: const LoginScreen(),
     );
   }
 }

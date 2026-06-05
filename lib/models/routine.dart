@@ -8,6 +8,7 @@ class Routine {
   bool isCompleted;
   String? completedTime;
   List<int> scheduledDays;
+  String? specificDate;
 
   Routine({
     this.id,
@@ -19,6 +20,7 @@ class Routine {
     this.isCompleted = false,
     this.completedTime,
     List<int>? scheduledDays,
+    this.specificDate,
   }) : scheduledDays = scheduledDays ?? [1, 2, 3, 4, 5, 6, 7];
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class Routine {
       'isCompleted': isCompleted,
       'completedTime': completedTime,
       'scheduledDays': scheduledDays.join(','),
+      if (specificDate != null) 'specificDate': specificDate,
     };
   }
 
@@ -60,6 +63,7 @@ class Routine {
       isCompleted: json['isCompleted'] ?? false,
       completedTime: json['completedTime'],
       scheduledDays: parseScheduledDays(json['scheduledDays']),
+      specificDate: json['specificDate'],
     );
   }
 }
