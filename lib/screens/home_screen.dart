@@ -23,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingRoutines = true;
   int _selectedIndex = 0; // BottomNavigationBar index
   DateTime _selectedDay = DateTime.now();
+  late ScrollController _calendarScrollController;
+  late List<DateTime> _yearDays;
 
   final Map<String, String> _avatarEmojis = {
     'student_boy': '👦',
@@ -37,6 +39,35 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadSavedData();
+    _initCalendar();
+  }
+
+  void _initCalendar() {
+    final year = DateTime.now().year;
+    final firstDay = DateTime(year, 1, 1);
+    final daysCount = DateTime(year, 12, 31).difference(firstDay).inDays + 1;
+    _yearDays = List.generate(
+      daysCount,
+      (index) => firstDay.add(Duration(days: index)),
+    );
+
+    final todayIndex = _yearDays.indexWhere(
+      (d) =>
+          d.year == DateTime.now().year &&
+          d.month == DateTime.now().month &&
+          d.day == DateTime.now().day,
+    );
+    double initialOffset = (todayIndex - 2) * 60.0;
+    if (initialOffset < 0) initialOffset = 0;
+    _calendarScrollController = ScrollController(
+      initialScrollOffset: initialOffset,
+    );
+  }
+
+  @override
+  void dispose() {
+    _calendarScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSavedData() async {
@@ -99,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _deleteRoutine(int index) async {
     final deletedName = _routines[index].title;
-    
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -116,7 +147,10 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFFFFE600))),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFFFFE600)),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -289,14 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  List<DateTime> _getCenteredWeek() {
-    final today = DateTime.now();
-    return List.generate(
-      7,
-      (index) => today.subtract(Duration(days: 3 - index)),
-    );
-  }
-
   String _getDayNameAbbr(int weekday) {
     switch (weekday) {
       case 1:
@@ -329,8 +355,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (r.frequency == 'Once' && r.specificDate != null) {
         final rDate = DateTime.parse(r.specificDate!);
         return rDate.year == _selectedDay.year &&
-               rDate.month == _selectedDay.month &&
-               rDate.day == _selectedDay.day;
+            rDate.month == _selectedDay.month &&
+            rDate.day == _selectedDay.day;
       }
       return r.scheduledDays.contains(_selectedDay.weekday);
     }).toList();
@@ -339,7 +365,6 @@ class _HomeScreenState extends State<HomeScreen> {
     double progress = totalCount > 0 ? (completedCount / totalCount) : 0.0;
     int progressPercent = (progress * 100).toInt();
 
-    final weekDays = _getCenteredWeek();
     final today = DateTime.now();
 
     return _isLoadingRoutines
@@ -421,14 +446,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 12.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: weekDays.map((day) {
+                SizedBox(
+                  height: 90,
+                  child: ListView.builder(
+                    controller: _calendarScrollController,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                    itemCount: _yearDays.length,
+                    itemBuilder: (context, index) {
+                      final day = _yearDays[index];
                       final isToday =
                           day.year == today.year &&
                           day.month == today.month &&
@@ -441,8 +470,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (r.frequency == 'Once' && r.specificDate != null) {
                           final rDate = DateTime.parse(r.specificDate!);
                           return rDate.year == day.year &&
-                                 rDate.month == day.month &&
-                                 rDate.day == day.day;
+                              rDate.month == day.month &&
+                              rDate.day == day.day;
                         }
                         return r.scheduledDays.contains(day.weekday);
                       });
@@ -453,77 +482,94 @@ class _HomeScreenState extends State<HomeScreen> {
                             _selectedDay = day;
                           });
                         },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? yellowAccent.withValues(alpha: 0.15) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected ? yellowAccent : Colors.transparent,
-                              width: 1.5,
+                        child: Container(
+                          width: 52,
+                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 6,
+                              horizontal: 4,
                             ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _getDayNameAbbr(day.weekday),
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? yellowAccent
-                                      : isToday
-                                          ? Colors.white
-                                          : Colors.white.withValues(alpha: 0.3),
-                                  fontSize: 11,
-                                  fontWeight: isSelected || isToday
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? yellowAccent.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? yellowAccent
+                                    : Colors.transparent,
+                                width: 1.5,
                               ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                  horizontal: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: isToday
-                                      ? const Border(
-                                          bottom: BorderSide(
-                                            color: yellowAccent,
-                                            width: 2,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                                child: Text(
-                                  '${day.day}',
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _getDayNameAbbr(day.weekday),
                                   style: TextStyle(
-                                    color: isSelected || isToday ? yellowAccent : Colors.white,
-                                    fontSize: 14,
+                                    color: isSelected
+                                        ? yellowAccent
+                                        : isToday
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.3),
+                                    fontSize: 11,
                                     fontWeight: isSelected || isToday
-                                        ? FontWeight.w900
-                                        : FontWeight.bold,
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: hasRoutines
-                                      ? (isSelected ? yellowAccent : yellowAccent.withValues(alpha: 0.6))
-                                      : Colors.transparent,
-                                  shape: BoxShape.circle,
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                    horizontal: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: isToday
+                                        ? const Border(
+                                            bottom: BorderSide(
+                                              color: yellowAccent,
+                                              width: 2,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    '${day.day}',
+                                    style: TextStyle(
+                                      color: isSelected || isToday
+                                          ? yellowAccent
+                                          : Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: isSelected || isToday
+                                          ? FontWeight.w900
+                                          : FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: hasRoutines
+                                        ? (isSelected
+                                              ? yellowAccent
+                                              : yellowAccent.withValues(
+                                                  alpha: 0.6,
+                                                ))
+                                        : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );
-                    }).toList(),
+                    },
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -561,48 +607,49 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                         : filteredRoutines.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.event_busy_outlined,
-                                      size: 64,
-                                      color: Colors.white.withValues(alpha: 0.1),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'No routines today!',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Select another day or add a routine for this day.',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.35),
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.event_busy_outlined,
+                                  size: 64,
+                                  color: Colors.white.withValues(alpha: 0.1),
                                 ),
-                              )
-                            : ListView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: filteredRoutines.length,
-                                itemBuilder: (context, index) {
-                                  final routine = filteredRoutines[index];
-                                  final originalIndex = _routines.indexOf(routine);
-                                  return RoutineCard(
-                                    routine: routine,
-                                    onTap: () => _toggleRoutineCompletion(originalIndex),
-                                    onDelete: () => _deleteRoutine(originalIndex),
-                                  );
-                                },
-                              ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'No routines today!',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Select another day or add a routine for this day.',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: filteredRoutines.length,
+                            itemBuilder: (context, index) {
+                              final routine = filteredRoutines[index];
+                              final originalIndex = _routines.indexOf(routine);
+                              return RoutineCard(
+                                routine: routine,
+                                onTap: () =>
+                                    _toggleRoutineCompletion(originalIndex),
+                                onDelete: () => _deleteRoutine(originalIndex),
+                              );
+                            },
+                          ),
                   ),
                 ),
                 Container(

@@ -20,6 +20,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
   String _selectedCategory = 'Workout'; // Default category
   String _selectedFrequency = 'Daily'; // Default frequency
   List<int> _selectedDays = [];
+  DateTime? _selectedDate;
   final List<String> _weekLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   @override
@@ -27,6 +28,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
     super.initState();
     final initialDay = widget.defaultWeekday ?? DateTime.now().weekday;
     _selectedDays = [initialDay];
+    _selectedDate = widget.defaultDate ?? DateTime.now();
     if (_selectedFrequency == 'Daily') {
       _selectedDays = [1, 2, 3, 4, 5, 6, 7];
     }
@@ -245,59 +247,121 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                const Text(
-                  'Active Days',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(7, (index) {
-                    final dayNum = index + 1;
-                    final isSelected = _selectedDays.contains(dayNum);
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            if (_selectedDays.length > 1) {
-                              _selectedDays.remove(dayNum);
+                if (_selectedFrequency == 'Once') ...[
+                  const Text(
+                    'Select Date',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.white54),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _selectedDate != null 
+                              ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
+                              : 'Select Date',
+                            style: const TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDate ?? DateTime.now(),
+                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: Color(0xFFFFE600),
+                                      onPrimary: Colors.black,
+                                      surface: Color(0xFF1E1E24),
+                                      onSurface: Colors.white,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _selectedDate = picked;
+                              });
                             }
-                          } else {
-                            _selectedDays.add(dayNum);
-                          }
-                          _selectedDays.sort();
-                          if (_selectedDays.length == 7) {
-                            _selectedFrequency = 'Daily';
-                          } else {
-                            _selectedFrequency = '${_selectedDays.length} day a week';
-                          }
-                        });
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected ? yellowAccent : cardBg,
-                          border: Border.all(
-                            color: isSelected ? yellowAccent : Colors.white24,
-                            width: 1,
+                          },
+                          child: const Text(
+                            'Pick Date',
+                            style: TextStyle(color: yellowAccent, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _weekLabels[index],
-                          style: TextStyle(
-                            color: isSelected ? Colors.black : Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ] else ...[
+                  const Text(
+                    'Active Days',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(7, (index) {
+                      final dayNum = index + 1;
+                      final isSelected = _selectedDays.contains(dayNum);
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isSelected) {
+                              if (_selectedDays.length > 1) {
+                                _selectedDays.remove(dayNum);
+                              }
+                            } else {
+                              _selectedDays.add(dayNum);
+                            }
+                            _selectedDays.sort();
+                            if (_selectedDays.length == 7) {
+                              _selectedFrequency = 'Daily';
+                            } else {
+                              _selectedFrequency = '${_selectedDays.length} day a week';
+                            }
+                          });
+                        },
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected ? yellowAccent : cardBg,
+                            border: Border.all(
+                              color: isSelected ? yellowAccent : Colors.white24,
+                              width: 1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            _weekLabels[index],
+                            style: TextStyle(
+                              color: isSelected ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 20),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 20),
+                ],
 
                 const Text(
                   'Routine Timing',
@@ -403,7 +467,7 @@ class _AddRoutineScreenState extends State<AddRoutineScreen> {
                               isCompleted: false, // Starts as incomplete
                               completedTime: null,
                               scheduledDays: _selectedFrequency == 'Once' ? [] : _selectedDays,
-                              specificDate: _selectedFrequency == 'Once' ? (widget.defaultDate?.toIso8601String() ?? DateTime.now().toIso8601String()) : null,
+                              specificDate: _selectedFrequency == 'Once' ? (_selectedDate?.toIso8601String() ?? DateTime.now().toIso8601String()) : null,
                             );
                             
                             // Pop this screen and return the new object
