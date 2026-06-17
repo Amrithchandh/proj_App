@@ -1,11 +1,11 @@
-# 📅 Routine Tracker App
+#  **Routine Tracker App**
 
 A **Flutter-based mobile/desktop application** that helps students organize their daily routines, track task completion, build streaks, and stay motivated — all stored **100% offline** on the device.
 
 
 ---
 
-## 🧠 What This App Does
+## What This App Does
 
 The app targets **students** who want to:
 - Plan their day by adding custom routines (e.g., study, exercise, reading)
@@ -16,7 +16,7 @@ The app targets **students** who want to:
 
 ---
 
-## 🏗️ Project Architecture
+## Project Architecture
 
 This is a **Flutter** project using the **Provider** pattern for state management and **SQLite** for local data storage. There is also a small **Node.js backend** included for a web-based database viewer.
 
@@ -65,7 +65,7 @@ ictak/
 
 ---
 
-## 📱 Screens Explained
+## Screens Explained
 
 ### 1. Login Screen (`login_screen.dart`)
 - First screen shown to new users
@@ -95,7 +95,7 @@ ictak/
 
 ---
 
-## 🗄️ Data Storage
+##  Data Storage
 
 ### SQLite Database (`database_helper.dart`)
 All routines are stored locally in an SQLite database using the `sqflite` package.
@@ -120,7 +120,7 @@ Used for lightweight key-value storage:
 
 ---
 
-## 🌐 Backend (Optional — DB Viewer)
+##  Backend (Optional — DB Viewer)
 
 The `backend/` folder contains a small **Node.js + Express** server that lets you inspect the SQLite database from a browser. This is useful during development.
 
@@ -135,7 +135,7 @@ node server.js
 
 ---
 
-## 🚀 How to Run the App
+##  How to Run the App
 
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) installed
@@ -165,7 +165,7 @@ flutter run -d chrome      # Web browser
 
 ---
 
-## 📦 Key Dependencies
+## Key Dependencies
 
 ```yaml
 sqflite: ^2.4.1          # SQLite database for offline storage
@@ -178,7 +178,7 @@ cupertino_icons: ^1.0.8  # iOS-style icons
 
 ---
 
-## 🙋 For New Contributors
+##  For New Contributors
 
 If you're picking this up for the first time, follow this reading order:
 
@@ -190,6 +190,6 @@ If you're picking this up for the first time, follow this reading order:
 
 ---
 
-## 📝 License
+##  License
 
 This project is for educational/personal use as part of an ICTAK training project.
