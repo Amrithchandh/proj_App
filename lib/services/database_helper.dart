@@ -6,7 +6,7 @@ import '../models/user_profile.dart';
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   static Database? _database;
-
+//Niya Fathima pk 
   factory DatabaseHelper() => _instance;
 
   DatabaseHelper._internal();
